@@ -1,44 +1,43 @@
-// The Vacuum's Alibi: One Line, 200 Characters.
+// The Vacuum's Alibi: One Line, 200 Characters — v2.
 //
-// The entry is a single deadpan excuse, written to /output/entry.txt
-// (or $MAKEFUN_OUTPUT_DIR/entry.txt when the harness sets it).
+// The entry is a single deadpan excuse, written to entry.txt under
+// /output (or $MAKEFUN_OUTPUT_DIR when the harness sets it).
 //
-// The joke: the vacuum did not miss the spot — its sensors decided the
-// crumbs were load-bearing, so it cleaned around them and escalated the
-// matter to headquarters. Deadpan robot voice (sensors, escalation),
-// a surprise turn (crumbs as structural engineering), and the punch lands
-// on the last clause: a crumb report going all the way upstairs.
+// The joke, fresh for v2: the vacuum does not deny the crumbs — it went
+// bureaucratic on them. It filed a formal complaint, and HR has ruled
+// the crumbs are now part of the carpet. Deadpan office voice
+// ("formal complaint", "HR ruled"), an alibi delivered to an officer,
+// and the punch lands on the last clause: the mess has been
+// reclassified as furniture, so there is nothing left to clean.
 //
-// Pure Node stdlib, no network, no child processes, no dependencies.
+// Pure Node stdlib. No network, no child processes, no dependencies.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-const LINE =
-  "I did not miss that spot. My sensors determined the crumbs were load-bearing, so I cleaned around them and escalated the matter to headquarters.";
+const ENTRY =
+  "I filed a formal complaint about those crumbs, officer. HR ruled they are now part of the carpet.";
 
-const MAX_LEN = 200;
+const LIMIT = 200;
 
 // The house gate: UTF-8 text, 1-200 characters, not only whitespace, one
-// line. Fail loudly here instead of shipping a bad file.
-function checkLine(text: string): void {
+// line, no stray spacing. Fail loudly here instead of shipping a bad file.
+function guard(text: string): number {
   const chars = [...text].length;
-  if (chars < 1 || chars > MAX_LEN) {
-    throw new Error(`line must be 1-${MAX_LEN} characters, got ${chars}`);
+  if (chars < 1 || chars > LIMIT) {
+    throw new Error(`entry must be 1-${LIMIT} characters, got ${chars}`);
   }
-  if (text.trim().length === 0) {
-    throw new Error("line must not be blank");
+  if (text.trim() !== text || text.includes("  ")) {
+    throw new Error("entry must not have leading, trailing or doubled spaces");
   }
-  if (text !== text.trim() || text.includes("  ")) {
-    throw new Error("line must not have stray or doubled spaces");
+  if (/[\x00-\x1F\x7F]/.test(text)) {
+    throw new Error("entry must fit on one line with no control characters");
   }
-  if (text.includes("\n") || text.includes("\r")) {
-    throw new Error("line must fit on one line");
-  }
+  return chars;
 }
 
 function main(): void {
-  checkLine(LINE);
+  const chars = guard(ENTRY);
 
   const outDir = process.env.MAKEFUN_OUTPUT_DIR ?? "/output";
   mkdirSync(outDir, { recursive: true });
@@ -46,16 +45,16 @@ function main(): void {
 
   // Write exactly the line — no trailing newline, so the file's character
   // count is the line's character count and nothing else.
-  writeFileSync(outFile, LINE, "utf8");
+  writeFileSync(outFile, ENTRY, "utf8");
 
   // Prove the file on disk is byte-for-byte the line before claiming success.
   const written = readFileSync(outFile, "utf8");
-  if (written !== LINE) {
-    throw new Error("output file does not match the line");
+  if (written !== ENTRY) {
+    throw new Error("output file does not match the entry");
   }
 
-  console.log(`Wrote ${[...LINE].length} characters to ${outFile}`);
-  console.log(LINE);
+  console.log(`Wrote ${chars} characters to ${outFile}`);
+  console.log(ENTRY);
 }
 
 main();
